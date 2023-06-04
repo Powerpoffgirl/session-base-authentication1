@@ -3,18 +3,79 @@
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Simple To-Do App</title>
+      <title>Library Management</title>
       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+      <style>
+        body{
+          box-sizing: border-box;
+          background-color: black;
+        }
+        .heading{
+          color: white;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 700;
+        }
+        hr{
+          background-color: white;
+        }
+        .form-container{
+          display: flex;
+          justify-content:space-evenly;
+        }
+        input{
+          height: 50px;
+          width: 250px;
+          border: none;
+          outline: none;
+          border-radius: 6%;
+        }
+        input::placeholder{
+          text-align:left;
+          font-size:20px;
+          opacity: .3;
+        }
+        .button{
+          margin-top: 18px;
+          width:100px;
+          height: 50px;
+          border-radius: 10%;
+          border: none;
+          outline: none;
+          background-color: blue;
+          color: white;
+        }
+        .form{
+          margin: 2%;
+        }
+        h2{
+          color: white;
+          font-size: 52px;
+          word-spacing: 5px;
+          font-weight: 800;
+        }
+        #item_list{
+          display: flex;
+          flex-wrap: wrap;
+        }
+        </style>
+        
     </head>
     <body>
       <div class="container">
-        <h1 class="display-4 text-center py-1">To-Do App</h1>
+        <h1 class="heading display-4 py-1">Library Management</h1>
         
         <div class="jumbotron p-3 shadow-sm">
-          <form id="create_form">
+          <form action="/create-item" id="create_form" method="POST">
             <div class="d-flex align-items-center">
-              <input id="create_field" name='todo' autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
-              <button class="add_item btn btn-primary">Add New Item</button>
+              <label>Title</label>
+              <input id="bookTitle" placeholder="Enter Title Here" name='bookTitle' autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
+              <label>Author</label>
+              <input id="bookAuthor" placeholder="Enter Author Name" name='bookAuthor' autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
+              <label>Price</label>
+              <input id="bookPrice" placeholder="Enter Price" name='bookPrice' autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
+              <label>Category</label>
+              <input id="bookCategory" placeholder="Enter Category" name='bookCategory' autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
+              <button class="add_item btn btn-primary">Add Book</button>
             </div>
           </form>
         </div>

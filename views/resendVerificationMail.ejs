@@ -2,7 +2,7 @@
 <html>   
 <head>  
 <meta name="viewport" content="width=device-width, initial-scale=1">  
-<title> Login Page </title>  
+<title> Change password</title>  
 <style>   
 Body {  
   font-family: Calibri, Helvetica, sans-serif;  
@@ -42,24 +42,22 @@ button {
         padding: 25px;   
         background-color: lightblue;  
     }   
+ h1{
+    font-family:monospace;
+    color: blue;
+ }
 </style>   
 </head>    
 <body>    
-    <center> <h1> Login Form </h1> </center>   
-    <form action='/login' method="POST">  
+    <center> <h1>Resend Verification Mail</h1> </center>   
+    <form action='/resendVerificationMail' method="POST">  
         <div class="container">   
-            <label for="loginId">Email or Username : </label>   
-            <input type="text" placeholder="Enter Email or Username" name="loginId" required>  
-            <label for="password">Password : </label>   
-            <input type="password" placeholder="Enter Password" name="password" required>  
-            <button type="submit">Login</button>   
-            <button class="btn" type="button" onclick="forgotPassword()" >Forget Password</button>   
-            <button class="btn" type="button" onclick="resendVerificationMail()">Resend the verification</button>
+            <label for="loginId">Email: </label>   
+            <input type="text" placeholder="Enter Email " name="loginId" required>  
+            <button type="submit">Submit</button>   
         </div>   
-       
-    </form>   
+    </form>     
     <script  src="https://unpkg.com/axios/dist/axios.min.js"> </script>
-    <script src="/browser.js"></script>  
+    <script src="/browser.js"></script>
 </body>     
 </html> 
-

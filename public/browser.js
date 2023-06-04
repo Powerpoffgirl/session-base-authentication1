@@ -1,60 +1,90 @@
+function forgotPassword() {
+  window.location.href = "/forgotPasswordPage";
+}
+function resendVerificationMail() {
+  window.location.href = "/resendVerificationMail";
+}
+
 let skip = 0;
 
 document.addEventListener("click", function (event) {
   if (event.target.classList.contains("add_item")) {
     // event.preventDefault();
     console.log("add item");
-    const todoText = document.getElementById("create_field");
-    console.log(todoText.value);
-
-    if (todoText.value === "") {
-      alert("Please enter todo text");
+    const bookTitle = document.getElementById("bookTitle");
+    const bookAuthor = document.getElementById("bookAuthor");
+    const bookPrice = document.getElementById("bookPrice");
+    const bookCategory = document.getElementById("bookCategory");
+    console.log(bookTitle.value);
+    console.log(bookAuthor.value);
+    console.log(bookPrice.value);
+    console.log(bookCategory.value);
+    if (bookTitle.value === "") {
+      alert("Please enter book title");
       return;
     }
-
     axios
-      .post("/create-item", { todo: todoText.value })
+      .post("/create-item", {
+        book: {
+          bookTitle: bookTitle.value,
+          bookAuthor: bookAuthor.value,
+          bookPrice: bookPrice.value,
+          bookCategory: bookCategory.value,
+        },
+      })
       .then((res) => {
         console.log(res);
         if (res.data.status !== 201) {
           alert(res.data.message);
         }
-        todoText.value = "";
+        bookTitle.value = "";
+        bookAuthor.value = "";
+        bookPrice.value = "";
+        bookCategory.value = "";
       })
       .catch((err) => {
         console.log(err);
         alert(err);
       });
-
-    // return;
+    return;
   }
-
   if (event.target.classList.contains("edit-me")) {
     const id = event.target.getAttribute("data-id");
-    const newData = prompt("Enter your new todo text");
-
-    console.log(id, newData);
+    const newBookTitle = prompt("Enter your new book title");
+    const newBookAuthor = prompt("Enter your new book author");
+    const newBookPrice = prompt("Enter your new book price");
+    const newBookCategory = prompt("Enter your new book Category");
+    const bookTitle = document.getElementById("bookTitle");
+    const bookAuthor = document.getElementById("bookAuthor");
+    const bookPrice = document.getElementById("bookPrice");
+    const bookCategory = document.getElementById("bookCategory");
+    console.log(id, newBookTitle, newBookAuthor, newBookPrice, newBookCategory);
     axios
-      .post("/edit-item", { id, newData })
+      .post("/edit-item", {
+        id,
+        newBookTitle,
+        newBookAuthor,
+        newBookPrice,
+        newBookCategory,
+      })
       .then((res) => {
         if (res.data.status !== 200) {
-          console.log("ere");
           alert(res.data.message);
           return;
         }
-
-        event.target.parentElement.parentElement.querySelector(
-          ".item-text"
-        ).innerHTML = newData;
+        bookTitle.innerText = newBookTitle;
+        bookAuthor.innerText = newBookAuthor;
+        bookPrice.innerText = newBookPrice;
+        bookCategory.innerText = newBookCategory;
       })
       .catch((err) => {
         console.log(err);
         alert(err);
       });
   }
+
   if (event.target.classList.contains("delete-me")) {
     const id = event.target.getAttribute("data-id");
-
     axios
       .post("/delete-item", { id })
       .then((res) => {
@@ -62,7 +92,6 @@ document.addEventListener("click", function (event) {
           alert(res.data.message);
           return;
         }
-
         event.target.parentElement.parentElement.remove();
         return;
       })
@@ -71,17 +100,16 @@ document.addEventListener("click", function (event) {
         alert(err);
       });
   }
-
   if (event.target.classList.contains("show_more")) {
-    generateTodos();
+    generateBooks();
   }
 });
 
 window.onload = function () {
-  generateTodos();
+  generateBooks();
 };
 
-function generateTodos() {
+function generateBooks() {
   //read the todos
   console.log(skip);
   axios
@@ -91,24 +119,32 @@ function generateTodos() {
         alert(res.data.message);
         return;
       }
-      const todos = res.data.data;
-      console.log(todos);
+      console.log(res.data);
+      const books = res.data.data;
+      console.log(books);
       document.getElementById("item_list").insertAdjacentHTML(
         "beforeend",
-        todos
-          .map((item) => {
-            return `<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-            <span class="item-text"> ${item.todo}</span>
-            <div>
-            <button data-id="${item._id}" class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
-            <button data-id="${item._id}" class="delete-me btn btn-danger btn-sm">Delete</button>
-        </div>
-        </li>`;
+        books
+          .map((book) => {
+            return `
+            <div class="col-md-4 mb-4">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">${book.bookTitle}</h5>
+                <p class="card-text"> ${book.bookAuthor}</p>
+                <h5 class="card-text">${book.bookPrice}</h5>
+                <span class="book-category"> ${book.bookCategory}</span>
+                <button data-id="${book._id}" class="edit-me btn btn-primary btn-sm mr-1">Update</button>
+                <button data-id="${book._id}" class="delete-me btn btn-danger btn-sm">Delete</button>
+                </div>
+              </div>
+              </div>
+           `;
           })
           .join("")
       );
-      // increment skip by todos length
-      skip += todos.length;
+      // increment skip by books length
+      skip += books.length;
     })
     .catch((err) => {
       console.log(err);

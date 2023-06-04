@@ -24,6 +24,11 @@ const userSchema = new Schema({
     type: String,
     required: false,
   },
+  emailAuthenticated: {
+    type: Boolean,
+    required: true,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("user", userSchema);

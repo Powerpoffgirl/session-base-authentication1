@@ -7,11 +7,16 @@ const session = require("express-session");
 const mongoDbSession = require("connect-mongodb-session")(session);
 const { isAuth } = require("./middlewares/AuthMiddleware");
 const { rateLimiting } = require("./middlewares/rateLimiting");
+const jwt = require("jsonwebtoken");
 
 // file imports
-const { cleanUpAndValidate } = require("./utils/AuthUtils");
+const {
+  cleanUpAndValidate,
+  generateJWTToken,
+  sendVerificationToken,
+} = require("./utils/AuthUtils");
 const userSchema = require("./userSchema");
-const TodoModel = require("./models/TodoModel");
+const BookModel = require("./models/BookModel");
 
 // variables
 PORT = process.env.PORT || 8000;
@@ -43,7 +48,7 @@ const store = new mongoDbSession({
 
 app.use(
   session({
-    secret: "This is Todo app, we dont love coding",
+    secret: "This is Book app, we dont love coding",
     resave: false,
     saveUninitialized: false,
     store: store,
@@ -52,10 +57,10 @@ app.use(
 
 // routes
 app.get("/", (req, res) => {
-  return res.send("This is your todo app.");
+  return res.send("This is your library management app.");
 });
 
-app.get("/register", (req, res) => {
+app.get("/registration", (req, res) => {
   return res.render("register");
 });
 
@@ -106,7 +111,17 @@ app.post("/register", async (req, res) => {
     try {
       const userDb = await user.save(); //create a user in DB
       console.log(userDb);
-      return res.redirect("/login");
+      // token generate
+      const verificationToken = generateJWTToken(email);
+      console.log(verificationToken);
+      // send mai function
+      sendVerificationToken({ email, verificationToken });
+      console.log(userDb);
+      return res.send({
+        status: 200,
+        message:
+          "Registration successfull, Link has been sent to your mail id. Please verify before login.",
+      });
     } catch (error) {
       return res.send({
         status: 500,
@@ -122,6 +137,29 @@ app.post("/register", async (req, res) => {
       error: error,
     });
   }
+});
+
+app.get("/api/:token", (req, res) => {
+  console.log(req.params);
+  const token = req.params.token;
+  const SECRET_KEY = "This is march nodejs class";
+
+  jwt.verify(token, SECRET_KEY, async (err, decoded) => {
+    try {
+      const userDb = await userSchema.findOneAndUpdate(
+        { email: decoded },
+        { emailAuthenticated: true }
+      );
+      console.log(userDb);
+      return res.status(200).redirect("/login");
+    } catch (error) {
+      res.send({
+        status: 500,
+        message: "database error",
+        error: error,
+      });
+    }
+  });
 });
 
 app.post("/login", async (req, res) => {
@@ -160,6 +198,13 @@ app.post("/login", async (req, res) => {
       });
     }
 
+    if (userDb.emailAuthenticated === false) {
+      return res.send({
+        status: 400,
+        message: "Email not authenticated",
+      });
+    }
+
     //password compare bcrypt.compare
     const isMatch = await bcrypt.compare(password, userDb.password);
 
@@ -190,6 +235,16 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//Change password route
+app.get("/forgotPasswordPage", (req, res) => {
+  res.render("forgotPasswordPage");
+});
+
+//resend Verification Mail
+app.get("/resendVerificationMail", (req, res) => {
+  res.render("resendVerificationMail");
+});
+
 app.get("/dashboard", isAuth, async (req, res) => {
   return res.render("dashboard");
 });
@@ -202,6 +257,35 @@ app.post("/logout", isAuth, (req, res) => {
 
     return res.redirect("/login");
   });
+});
+
+app.post("/resendVerificationMail", async (req, res) => {
+  console.log(req.body);
+  const { loginId } = req.body;
+  if (validator.isEmail(loginId)) {
+    //here i create token for 2fa
+    const token = generateJWTToken(loginId);
+    // console.log(token);
+    try {
+      sendVerificationToken({ loginId, token });
+      return res.status(200).redirect("/login");
+    } catch (error) {
+      console.log(error);
+      return res.send({
+        status: 400,
+        message: "error in resend varification mail",
+        error: error,
+      });
+    }
+  } else {
+    return res.send(
+      `<center><h2>!!<br>(-----Please provide a valid email address-----)</h2></center>`
+    );
+  }
+});
+
+app.post("/forgotPassword", async (req, res) => {
+  
 });
 
 app.post("/logout_from_all_devices", isAuth, async (req, res) => {
@@ -232,39 +316,45 @@ app.post("/logout_from_all_devices", isAuth, async (req, res) => {
 
 app.post("/create-item", isAuth, rateLimiting, async (req, res) => {
   console.log(req.session);
-  const todoText = req.body.todo;
+  console.log(req.body);
+
+  const { bookTitle, bookAuthor, bookPrice, bookCategory } = req.body.book;
+  console.log(bookTitle);
 
   // Data validation
-  if (!todoText) {
+  if (!bookTitle) {
     return res.send({
       status: 400,
-      message: "Todo is empty",
+      message: "Book is empty",
     });
-  } else if (typeof todoText !== "string") {
+  } else if (typeof bookTitle !== "string") {
     return res.send({
       status: 400,
-      message: "Invalid todo format",
+      message: "Invalid book format",
     });
-  } else if (todoText.length > 100) {
+  } else if (bookTitle.length > 100) {
     return res.send({
       status: 400,
       message:
-        "Invalid todo length, it should be in the range of 3 to 100 characters.",
+        "Invalid book length, it should be in the range of 3 to 100 characters.",
     });
   }
-  // initialize todo schema and store it in DB
-  const todo = new TodoModel({
-    todo: todoText,
+  // initialize book schema and store it in DB
+  const book = new BookModel({
+    bookTitle: bookTitle,
+    bookAuthor: bookAuthor,
+    bookPrice: bookPrice,
+    bookCategory: bookCategory,
     username: req.session.user.username,
   });
-  const todoDb = await todo.save();
+  const bookDb = await book.save();
   try {
-    const todoDb = await todo.save();
-    console.log(todo);
+    const bookDb = await book.save();
+    console.log(book);
     return res.send({
       status: 201,
-      message: "Todo created successfully",
-      data: todoDb,
+      message: "Book created successfully",
+      data: bookDb,
     });
   } catch (error) {
     return res.send({
@@ -277,35 +367,44 @@ app.post("/create-item", isAuth, rateLimiting, async (req, res) => {
 
 app.post("/edit-item", isAuth, async (req, res) => {
   console.log(req.body);
-  const { id, newData } = req.body;
-  if (!id || !newData) {
-    return res.send({
-      status: 400,
-      message: "Missing credentials",
-    });
-  }
-  if (typeof newData !== "string") {
-    return res.send({
-      status: 400,
-      message: "Invalid Todo format",
-    });
-  }
-  if (newData.length > 100) {
-    return res.send({
-      message: "Todo is too long, should be less than 100 char.",
-    });
-  }
+  // const { id, newData } = req.body;
+  const { id, newBookTitle, newBookAuthor, newBookPrice, newBookCategory } =
+    req.body;
+
+  console.log(newBookTitle);
+  // if (!id || !bookTitle) {
+  //   return res.send({
+  //     status: 400,
+  //     message: "Missing credentials",
+  //   });
+  // }
+  // if (typeof bookTitle !== "string") {
+  //   return res.send({
+  //     status: 400,
+  //     message: "Invalid book format",
+  //   });
+  // }
+  // if (bookTitle.length > 100) {
+  //   return res.send({
+  //     message: "Book is too long, should be less than 100 char.",
+  //   });
+  // }
 
   try {
-    const todoDb = await TodoModel.findOneAndUpdate(
+    const bookDb = await BookModel.findOneAndUpdate(
       { _id: id },
-      { todo: newData }
+      {
+        bookTitle: newBookTitle,
+        bookAuthor: newBookAuthor,
+        bookPrice: newBookPrice,
+        bookCategory: newBookCategory,
+      }
     );
-    console.log(todoDb);
+    console.log(bookDb);
     return res.send({
       status: 200,
-      message: "Todo updated successfully",
-      data: todoDb,
+      message: "Book updated successfully",
+      data: bookDb,
     });
   } catch (error) {
     return res.send({
@@ -329,12 +428,12 @@ app.post("/delete-item", isAuth, async (req, res) => {
   }
 
   try {
-    const todoDb = await TodoModel.findOneAndDelete({ _id: id });
-    console.log(todoDb);
+    const bookDb = await BookModel.findOneAndDelete({ _id: id });
+    console.log(bookDb);
     return res.send({
       status: 200,
-      message: "Todo deleted successfully",
-      data: todoDb,
+      message: "Book deleted successfully",
+      data: bookDb,
     });
   } catch (error) {
     return res.send({
@@ -349,18 +448,18 @@ app.post("/delete-item", isAuth, async (req, res) => {
 //   console.log(req.session.user.username);
 //   const user_name = req.session.user.username;
 //   try {
-//     const todos = await TodoModel.find({ username: user_name });
+//     const books = await BookModel.find({ username: user_name });
 
-//     if (todos.length === 0)
+//     if (books.length === 0)
 //       return res.send({
 //         status: 400,
-//         message: "Todo is empty, Please create some.",
+//         message: "Book is empty, Please create some.",
 //       });
 
 //     return res.send({
 //       status: 200,
 //       message: "Read Success",
-//       data: todos,
+//       data: books,
 //     });
 //   } catch (error) {
 //     return res.send({
@@ -381,7 +480,7 @@ app.get("/pagination_dashboard", isAuth, async (req, res) => {
   const user_name = req.session.user.username;
 
   try {
-    const todos = await TodoModel.aggregate([
+    const books = await BookModel.aggregate([
       // match, pagination-skip-limit
       { $match: { username: user_name } },
       {
@@ -390,11 +489,11 @@ app.get("/pagination_dashboard", isAuth, async (req, res) => {
         },
       },
     ]);
-    // console.log(todos[0].data);
+    // console.log(books[0].data);
     return res.send({
       status: 200,
       message: "Read success",
-      data: todos[0].data,
+      data: books[0].data,
     });
   } catch (error) {
     return res.send({
@@ -429,12 +528,12 @@ Dashboard page
 Logout
 Logout from all devices
 
-Todo API
+book API
 Create
 Edit
 Delete
 Read
-Show the todo on dashboard page
+Show the book on dashboard page
 
 Dashboard
 Browser.js
